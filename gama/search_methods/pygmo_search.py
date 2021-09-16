@@ -221,7 +221,6 @@ def pygmo_serach(
         rmtree(path)
         os.mkdir(path) 
     
-    lista_aux = []
     f_vectors = []
     path_use = os.getcwd()
     path = path_use.replace(os.sep, '/')
@@ -231,12 +230,12 @@ def pygmo_serach(
         new_ind = result.individual
         loss = new_ind.fitness.values[0]
         f_vectors.append(loss)
-        lista_aux.append(new_ind)
+        current_population.append(new_ind)
         with open(path, 'wb') as f:
-            pickle.dump(lista_aux, f)
+            pickle.dump(current_population, f)
         
     x_vectors = []
-    for i in lista_aux:
+    for i in current_population:
         instance_individual_to_vectors = IndividuoVector()
         new_vector = instance_individual_to_vectors(i)
         x_vectors.append(new_vector)
@@ -252,7 +251,13 @@ def pygmo_serach(
             result = ops.evaluate(individual_from_x)
             new_ind = result.individual
             final_output.append(new_ind)
+            print("estoy convirtiendo todo en individuos")
         except:
             print("Ese individuo no será evaluado")
 
     current_population=final_output
+
+        
+    
+    print("Longitud final", len(current_population))
+    return current_population
