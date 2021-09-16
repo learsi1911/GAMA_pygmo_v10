@@ -5,6 +5,7 @@ from functools import partial, partialmethod
 import logging
 import multiprocessing
 import os
+import time
 import random
 import subprocess
 import pickle # pygmo_search
@@ -662,7 +663,7 @@ class Gama(ABC):
         #for i in pop:
         #    print(i)
         deadline = time.time() + timeout
-
+        print("deadline", deadline)
         evaluate_pipeline = partial(
             gama.genetic_programming.compilers.scikitlearn.evaluate_pipeline,
             x=self._x,
@@ -705,41 +706,64 @@ class Gama(ABC):
         # print("ejemplo 1", ejemplo1)
         # print("ejemplo 1 fitness", ejemplo1.fitness)
         # print("ejemplo 1 fitness TYPE", type(ejemplo1.fitness))
-            
+        # __________________________________________________________________________
+        # try:
+        #     with stopit.ThreadingTimeout(timeout):
+        #         self._search_method.dynamic_defaults(self._x, self._y, timeout)
+        #         self._search_method.search(self._operator_set, start_candidates=pop)
+        # except KeyboardInterrupt:
+        #     log.info("Search phase terminated because of Keyboard Interrupt.")
+        # self._final_pop = self._search_method.output
+        # print("Longitud de la población final en gama.py", len(self._final_pop))
+        # if isinstance(self._search_method, SearchPygmo) and (len(self._final_pop)==0):
+        #     print("la población venía vacía")
+        #     path_use = os.getcwd()
+        #     path = path_use.replace(os.sep, '/')
+        #     path = path + "/pickle_gama/"
+        #     for root, dirs, files, in os.walk(path):
+        #         for file in files:
+        #             print(file)
+        #             if file.endswith(".pkl"):
+        #                 new_f_path = path + file
+        #                 if (file=="list_successive_halving.pkl") or (file=="archipelago_champions.pkl"):
+        #                     print(file)
+        #                 #new_lista = pickle.load(open(new_f_path, "rb"))
+        #                 else:
+        #                     try:
+        #                         new_lista = pickle.load(open(new_f_path, "rb"))
+        #                         #print("imprimiento new_lista gama.py", new_lista)
+        #                     except:
+        #                         print("Exception", file)
+        #                         new_lista = []
+                            
+        #                     self._final_pop = self._final_pop + new_lista
+        # else:
+        #     self._final_pop = self._search_method.output
+        #     print("la población venía perrunfla")
+        # print("Longitud de la población final_2 en gama.py", len(self._final_pop))
+        
+        # n_evaluations = len(self._evaluation_library.evaluations)
+        # log.info(f"Search phase evaluated {n_evaluations} individuals.")
+        # print("log n_evaluations", n_evaluations)
+        #_________________________________________________________________________
+        
         try:
             with stopit.ThreadingTimeout(timeout):
+                print("Voy a evaluar el metodo desde gama.py")
                 self._search_method.dynamic_defaults(self._x, self._y, timeout)
                 self._search_method.search(self._operator_set, start_candidates=pop)
         except KeyboardInterrupt:
             log.info("Search phase terminated because of Keyboard Interrupt.")
+            
+        print("Ya terminé las evaluaciones, dormiré 10 segundos")
+        time.sleep(10)
+        print("Ya dormí 10 segundos")
         self._final_pop = self._search_method.output
-        print("Longitud de la población final en gama.py", len(self._final_pop))
-        if isinstance(self._search_method, SearchPygmo) and (len(self._final_pop)==0):
-            print("la población venía vacía")
-            path_use = os.getcwd()
-            path = path_use.replace(os.sep, '/')
-            path = path + "/pickle_gama/"
-            for root, dirs, files, in os.walk(path):
-                for file in files:
-                    print(file)
-                    if file.endswith(".pkl"):
-                        new_f_path = path + file
-                        if (file=="list_successive_halving.pkl") or (file=="archipelago_champions.pkl"):
-                            print(file)
-                        #new_lista = pickle.load(open(new_f_path, "rb"))
-                        else:
-                            try:
-                                new_lista = pickle.load(open(new_f_path, "rb"))
-                                #print("imprimiento new_lista gama.py", new_lista)
-                            except:
-                                print("Exception", file)
-                                new_lista = []
-                            
-                            self._final_pop = self._final_pop + new_lista
-        else:
-            self._final_pop = self._search_method.output
-            print("la población venía perrunfla")
-        print("Longitud de la población final_2 en gama.py", len(self._final_pop))
+        print("len self._final_pop", len(self._final_pop))
+        n_evaluations = len(self._evaluation_library.evaluations)
+        log.info(f"Search phase evaluated {n_evaluations} individuals.")
+        print("log n_evaluations", n_evaluations)
+        #_________________________________________________________________________
         # for ejemplo1 in self._final_pop:
         #     print('fitness.values', ejemplo1.fitness.values)
         #     print('posicion 0 type', ejemplo1.fitness.values[0])
@@ -772,9 +796,7 @@ class Gama(ABC):
         # print("first element in the final population, gama fitness TYPE", type(self._final_pop[0].fitness))
         # print("first element in the final population, gama fitness values", self._final_pop[0].fitness.values)
         # print("first element in the final population, gama fitness TYPE values", type(self._final_pop[0].fitness.values))
-        n_evaluations = len(self._evaluation_library.evaluations)
-        log.info(f"Search phase evaluated {n_evaluations} individuals.")
-        print("log n_evaluations", n_evaluations)
+        
 
     def export_script(
         self, file: Optional[str] = "gama_pipeline.py", raise_if_exists: bool = False
@@ -833,6 +855,7 @@ class Gama(ABC):
         except stopit.utils.TimeoutException:
             raise
         except Exception:
+            print("Entramos a la excepción en _safe_outside_call gama.py")
             # We actually want to catch any other exception here,
             # because the callback code can be arbitrary (it can be provided by users).
             # This excuses the catch-all Exception.
