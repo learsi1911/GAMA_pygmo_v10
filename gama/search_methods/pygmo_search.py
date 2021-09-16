@@ -188,7 +188,7 @@ def pygmo_serach(
     #print(AsyncEvaluator.defaults)   
 
     print("------------------------------------------------")
-    print("Iterations with output", iters)
+    print("Iterations with output 10 min", iters)
     
     #Create a folder to save the invididuals
     path_use = os.getcwd()
