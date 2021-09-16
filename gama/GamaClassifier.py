@@ -192,7 +192,7 @@ class GamaClassifier(Gama):
         super().fit(x, y, *args, **kwargs)
         print("Ya terminé en GamaClassifier.py")
         print("dormiré 20 segundos")
-        time.sleep(20)
+        time.sleep(10)
         print("Ya desperté")
         print("Vamos a matar los procesos")
 
