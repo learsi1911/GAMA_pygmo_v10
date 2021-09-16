@@ -12,7 +12,11 @@ from .gama import Gama
 from gama.data_loading import X_y_from_file
 from gama.configuration.classification import clf_config
 from gama.utilities.metrics import scoring_to_metric
+import psutil # Search_pygmo
+import time # Search_pygmo
 
+def on_terminate(proc):
+    print("process {} terminated with exit code {}".format(proc, proc.returncode))
 
 class GamaClassifier(Gama):
     """ Gama with adaptations for (multi-class) classification. """
@@ -176,7 +180,7 @@ class GamaClassifier(Gama):
         #         self._evaluation_library.determine_sample_indices(stratify=y)
         #         super().fit(x, y, *args, **kwargs)
         # else:
-            
+        # print("2 Sigo en gama Classifier, porcentaje de datos es", 1-SuccessiveHalving[i])   
             
         y_ = y.squeeze() if isinstance(y, pd.DataFrame) else y
         self._label_encoder = LabelEncoder().fit(y_)
@@ -186,7 +190,21 @@ class GamaClassifier(Gama):
         # print("Sigo en gama Classifier, porcentaje de datos es", 1-SuccessiveHalving[i])
         self._evaluation_library.determine_sample_indices(stratify=y)
         super().fit(x, y, *args, **kwargs)
-        # print("2 Sigo en gama Classifier, porcentaje de datos es", 1-SuccessiveHalving[i])
+        print("Ya terminé en GamaClassifier.py")
+        print("dormiré 20 segundos")
+        time.sleep(20)
+        print("Ya desperté")
+        print("Vamos a matar los procesos")
+
+        
+        procs = psutil.Process().children()
+        for p in procs:
+            p.terminate()
+        gone, alive = psutil.wait_procs(procs, timeout=3, callback=on_terminate)
+        for p in alive:
+            p.kill()
+        print("Ya maté a todos los procesos")
+        
             
     def _encode_labels(self, y):
         self._label_encoder = LabelEncoder().fit(y)
