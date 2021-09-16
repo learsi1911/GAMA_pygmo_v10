@@ -185,7 +185,7 @@ def pygmo_serach(
 ) -> List[Individual]:
     #print(AsyncEvaluator.defaults)   
     print("------------------------------------------------")
-    print("Iterations new WITHOUT wait_check()", iters)
+    print("Iterations new WITHOUT wait_check() subclase", iters)
     
     #Create a folder to save the invididuals
     path_use = os.getcwd()
