@@ -4,7 +4,6 @@ Created on Sat Aug 28 15:59:53 2021
 
 @author: 20210595
 """
-
 from gama.genetic_programming.components.individual import Individual
 from gama.genetic_programming.compilers.scikitlearn import compile_individual
 from gama.genetic_programming.components.primitive_node import PrimitiveNode
@@ -16,6 +15,7 @@ import os
 import pickle
 from shutil import rmtree
 from numpy import genfromtxt
+import uuid
 import numpy as np
 import pygmo as pg
 from pygmo import *
@@ -101,12 +101,12 @@ def loss_function(ops: OperatorSet, ind1: Individual) -> Individual:
             individual_prototype = future.result.individual
         return individual_prototype
 
-class AutoMLProblem:
+class AutoMLProblem(SearchPygmo):
     #save_whiout_evaluation = []
     contador = 0
-    def __init__(self, ops, output, name="individual"):
+    def __init__(self, ops, name="individual"):
         self.operator = ops
-        self.output = output
+        #self.output = output
         self.count = 0
         self.name = name
         self.name_previous = name
@@ -137,23 +137,21 @@ class AutoMLProblem:
                     self.old_loss = -f1
                     print("The loss is lower than the previous one", self.old_loss)
                     self.output.append(individual_to_use)
-                    print("len self.output", len(self.output))
                     
-                    while(os.path.isfile(path)):
-                        print("El camino es: ", path)
-                        self.count += 1
-                        self.name = self.name_previous + '%d' % self.count 
-                        path_use = os.getcwd()
-                        path = path_use.replace(os.sep, '/')
-                        path = path + "/pickle_gama/" + self.name + ".pkl"
-                        print("Nuevo camino es: ", path)
+                    print("El camino es: ", path)
+                    self.name = self.name_previous + str(uuid.uuid4())
+                    path_use = os.getcwd()
+                    path = path_use.replace(os.sep, '/')
+                    path = path + "/pickle_gama/" + self.name + ".pkl"
+                    print("Nuevo camino es: ", path)
                             
                     with open(path, 'wb') as f:
                         pickle.dump(self.output, f)
             except:
                 f1 = -1000
         return [-f1]
-    
+                
+                
     
     # Define bounds
     def get_bounds(self):
@@ -186,9 +184,8 @@ def pygmo_serach(
     #iters: int = 10,
 ) -> List[Individual]:
     #print(AsyncEvaluator.defaults)   
-
     print("------------------------------------------------")
-    print("Iterations with output 10 min", iters)
+    print("Iterations new WITHOUT wait_check()", iters)
     
     #Create a folder to save the invididuals
     path_use = os.getcwd()
@@ -225,7 +222,7 @@ def pygmo_serach(
               
     print("START with pygmo")    
     algo = pg.algorithm(pg.de(gen = iters))
-    prob = pg.problem(AutoMLProblem(ops, output))        
+    prob = pg.problem(AutoMLProblem(ops))        
     # The initial population
     pop = pg.population(prob)
     for i in range(len(x_vectors)):
@@ -245,7 +242,6 @@ def pygmo_serach(
     print("IT JUST FINISH")
     print("Vamos a imprimir el archipelago")
     print(archi)
-    final_lista = []
     path_use = os.getcwd()
     path = path_use.replace(os.sep, '/')
     path = path + "/pickle_gama/"
@@ -257,7 +253,7 @@ def pygmo_serach(
                     new_lista = pickle.load(open(new_f_path, "rb"))
                 except:
                     new_lista = []
-                final_lista = final_lista + new_lista
+                output = output + new_lista
                 
     try: 
         x_of_island_champion = archi.get_champions_x()
@@ -269,8 +265,8 @@ def pygmo_serach(
             new_ind = result.individual
             output.append(new_ind)
     except: 
-        print("Entré a la excepeción, necesito imprimir el archipelago", output)
-        
-    output = output 
+        print("Entré a la excepeción, necesito imprimir el archipelago", archi)
+    
+    
     print("Longitud final", len(output))
     return output
