@@ -104,9 +104,9 @@ def loss_function(ops: OperatorSet, ind1: Individual) -> Individual:
 class AutoMLProblem:
     #save_whiout_evaluation = []
     contador = 0
-    def __init__(self, ops, name="individual"):
+    def __init__(self, ops, output, name="individual"):
         self.operator = ops
-        self.output = []
+        self.output = output
         self.count = 0
         self.name = name
         self.name_previous = name
@@ -137,6 +137,7 @@ class AutoMLProblem:
                     self.old_loss = -f1
                     print("The loss is lower than the previous one", self.old_loss)
                     self.output.append(individual_to_use)
+                    print("len self.output", len(self.output))
                     
                     while(os.path.isfile(path)):
                         print("El camino es: ", path)
@@ -152,27 +153,7 @@ class AutoMLProblem:
             except:
                 f1 = -1000
         return [-f1]
-                
-            
-                        
-            # if AutoMLProblem.contador > 1:
-            #     try:
-            #         with open(path, 'rb') as f:
-            #             self.output = pickle.load(f)
-            #         self.output.append(individual_to_use)
-            #         print('len self.output', len(self.output))
-            #         with open(path, 'wb') as f:
-            #             pickle.dump(self.output, f)
-            #     except:
-            #         #self.output = []
-            #         #self.output.append(individual_to_use)
-            #         print("entré a la excepción de pickle")
-            #         self.count += 1
-            #         #self.name = 'individual%d' % self.count + ".pkl"
-            #         self.name = self.name_previous + '%d' % self.count 
-            #         with open(path, 'wb') as f:
-            #             pickle.dump(self.output, f)
-        return [-f1]
+    
     
     # Define bounds
     def get_bounds(self):
@@ -204,11 +185,10 @@ def pygmo_serach(
     iters: int = 1,
     #iters: int = 10,
 ) -> List[Individual]:
-    list_archipelagos = []
     #print(AsyncEvaluator.defaults)   
-    current_population = output
+
     print("------------------------------------------------")
-    print("Iterations new WITHOUT wait_check()", iters)
+    print("Iterations with output", iters)
     
     #Create a folder to save the invididuals
     path_use = os.getcwd()
@@ -221,6 +201,7 @@ def pygmo_serach(
         rmtree(path)
         os.mkdir(path) 
     
+    output = []
     f_vectors = []
     path_use = os.getcwd()
     path = path_use.replace(os.sep, '/')
@@ -230,34 +211,66 @@ def pygmo_serach(
         new_ind = result.individual
         loss = new_ind.fitness.values[0]
         f_vectors.append(loss)
-        current_population.append(new_ind)
+        output.append(new_ind)
         with open(path, 'wb') as f:
-            pickle.dump(current_population, f)
+            pickle.dump(output, f)
         
     x_vectors = []
-    for i in current_population:
+    for i in output:
         instance_individual_to_vectors = IndividuoVector()
         new_vector = instance_individual_to_vectors(i)
         x_vectors.append(new_vector)
         
- 
-    final_output = []
-    x_of_island_champion = x_vectors.copy()
-    print("Jalada ________________________________________________")
-    for k in x_of_island_champion:
-        try:
+    print("Ya convertí el warm-start en vectores, new method")
+              
+    print("START with pygmo")    
+    algo = pg.algorithm(pg.de(gen = iters))
+    prob = pg.problem(AutoMLProblem(ops, output))        
+    # The initial population
+    pop = pg.population(prob)
+    for i in range(len(x_vectors)):
+        if f_vectors[i] == -np.inf:
+            f_vectors[i] = -10000
+        pop.push_back(x = x_vectors[i], f = [-f_vectors[i]])
+    archi = pg.archipelago(n=islands, algo=algo, pop=pop, t=pg.topology(pg.ring()))
+    print("CREATION OF THE ARCHIPELAGO, IT WILL START THE EVOLUTION IN PARALLEL")
+    print(archi) 
+    archi.get_champions_f() 
+    print(archi.get_champions_f()) 
+    archi.evolve()
+    archi.wait()
+    archi.wait_check()
+    archi.get_champions_f() 
+    print("archi.get_champions_f()", archi.get_champions_f()) 
+    print("IT JUST FINISH")
+    print("Vamos a imprimir el archipelago")
+    print(archi)
+    final_lista = []
+    path_use = os.getcwd()
+    path = path_use.replace(os.sep, '/')
+    path = path + "/pickle_gama/"
+    for root, dirs, files, in os.walk(path):
+        for file in files:
+            if file.endswith(".pkl"):
+                new_f_path = path + file                
+                try:
+                    new_lista = pickle.load(open(new_f_path, "rb"))
+                except:
+                    new_lista = []
+                final_lista = final_lista + new_lista
+                
+    try: 
+        x_of_island_champion = archi.get_champions_x()
+        print("El archipelago tiene ", len(x_of_island_champion), " nuevos individuos")
+        for k in x_of_island_champion:
             final_instance = ValuesSearchSpace(k)
             individual_from_x = final_instance.get_individuals()
             result = ops.evaluate(individual_from_x)
             new_ind = result.individual
-            final_output.append(new_ind)
-            print("estoy convirtiendo todo en individuos")
-        except:
-            print("Ese individuo no será evaluado")
-
-    current_population=final_output
-
+            output.append(new_ind)
+    except: 
+        print("Entré a la excepeción, necesito imprimir el archipelago", output)
         
-    
-    print("Longitud final", len(current_population))
-    return current_population
+    output = output 
+    print("Longitud final", len(output))
+    return output
